@@ -2,6 +2,15 @@ package org.jakobpolegek;
 import org.jakobpolegek.data.DatabaseManager;
 import org.jakobpolegek.data.XmlParser;
 
+import org.knowm.xchart.*;
+import javax.swing.JPanel;
+import javax.swing.JCheckBox;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import java.awt.BorderLayout;
+import javax.swing.*;
+import java.util.List;
+import java.util.Map;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -45,6 +54,60 @@ public class Main {
         System.out.print("Enter your choice: ");
     }
 
+    private static void displayChart(Map<LocalDate, Map<String, Object>> ratesByDate, List<String> currencies, LocalDate startDate, LocalDate endDate) {
+        String title = String.format("Exchange Rates vs. EUR (%s to %s)", startDate, endDate);
+        XYChart chart = new XYChartBuilder().width(800).height(600).title(title).xAxisTitle("Date").yAxisTitle("Rate").build();
+
+        chart.getStyler().setLegendVisible(false);
+        chart.getStyler().setDatePattern("yyyy-MM-dd");
+        chart.getStyler().setToolTipsEnabled(true);
+
+        List<LocalDate> sortedDates = ratesByDate.keySet().stream().sorted().collect(Collectors.toList());
+        List<java.util.Date> xData = sortedDates.stream()
+                .map(d -> java.sql.Date.valueOf(d))
+                .collect(Collectors.toList());
+
+        for (String currency : currencies) {
+            List<Double> yData = sortedDates.stream()
+                    .map(date -> {
+                        Object rate = ratesByDate.get(date).get(currency);
+                        return (rate instanceof Number) ? ((Number) rate).doubleValue() : null;
+                    })
+                    .collect(Collectors.toList());
+            chart.addSeries(currency, xData, yData);
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("SloRate Tracker - Chart");
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setLayout(new BorderLayout());
+
+            JPanel chartPanel = new XChartPanel<>(chart);
+            frame.add(chartPanel, BorderLayout.CENTER);
+
+            JPanel controlPanel = new JPanel();
+            controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
+            controlPanel.setBorder(BorderFactory.createTitledBorder("Tick:"));
+
+            for (String currency : currencies) {
+                JCheckBox checkBox = new JCheckBox(currency, true);
+                checkBox.addActionListener(e -> {
+                    boolean isSelected = checkBox.isSelected();
+                    chart.getSeriesMap().get(currency).setEnabled(isSelected);
+                    chartPanel.revalidate();
+                    chartPanel.repaint();
+                });
+                controlPanel.add(checkBox);
+            }
+
+            frame.add(controlPanel, BorderLayout.EAST);
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
+    }
+
+
     private static void displayRatesTable() {
         System.out.print("Enter currencies (comma-separated, e.g., USD,CHF): ");
         String[] currencyInputs = scanner.nextLine().toUpperCase().split(",");
@@ -75,6 +138,13 @@ public class Main {
             });
             System.out.println();
         });
+
+        if (!rates.isEmpty()) {
+            System.out.println("\nLaunching chart in a new window...");
+            displayChart(ratesByDate, currencies, startDate, endDate);
+        } else {
+            System.out.println("\nNo data available to display a chart.");
+        }
     }
 
     private static void calculateOpportunityLoss() {
