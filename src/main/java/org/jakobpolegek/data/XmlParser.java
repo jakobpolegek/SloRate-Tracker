@@ -39,8 +39,6 @@ public class XmlParser {
 
                 NodeList tecajnicaNodes = doc.getElementsByTagNameNS("*", "tecajnica");
 
-                System.out.println("Found " + tecajnicaNodes.getLength() + " daily rate records to process...");
-
                 for (int i = 0; i < tecajnicaNodes.getLength(); i++) {
                     Element dayElement = (Element) tecajnicaNodes.item(i);
                     LocalDate date = LocalDate.parse(dayElement.getAttribute("datum"), formatter);
@@ -60,7 +58,6 @@ public class XmlParser {
                 }
                 pstmt.executeBatch();
                 conn.commit();
-                System.out.println("Successfully parsed and stored " + ratesParsed.get() + " individual exchange rates.");
             }
         } catch (Exception e) {
             e.printStackTrace();

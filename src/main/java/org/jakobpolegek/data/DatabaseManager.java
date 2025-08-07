@@ -21,6 +21,26 @@ public class DatabaseManager {
         }
     }
 
+    public static Optional<Double> getMostRecentRate(LocalDate date, String currency) {
+        String sql = "SELECT rate FROM exchange_rates WHERE currency = ? AND rate_date <= ? " +
+                "ORDER BY rate_date DESC LIMIT 1";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, "sa", "");
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, currency);
+            pstmt.setDate(2, java.sql.Date.valueOf(date));
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return Optional.of(rs.getDouble("rate"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
     public static List<Map<String, Object>> getRatesForPeriod(LocalDate startDate, LocalDate endDate, List<String> currencies) {
         List<Map<String, Object>> results = new ArrayList<>();
         String sql = "SELECT rate_date, currency, rate FROM exchange_rates " +
@@ -50,21 +70,5 @@ public class DatabaseManager {
             e.printStackTrace();
         }
         return results;
-    }
-
-    public static Optional<Double> getRate(LocalDate date, String currency) {
-        String sql = "SELECT rate FROM exchange_rates WHERE rate_date = ? AND currency = ?";
-        try (Connection conn = DriverManager.getConnection(DB_URL, "sa", "");
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDate(1, java.sql.Date.valueOf(date));
-            pstmt.setString(2, currency);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return Optional.of(rs.getDouble("rate"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
     }
 }
