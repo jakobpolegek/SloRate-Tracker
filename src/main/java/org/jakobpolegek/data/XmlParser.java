@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class XmlParser {
 
-    public static void parseAndStore() {
+    public static void parseAndStore(InputStream xmlInputStream) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         AtomicInteger ratesParsed = new AtomicInteger(0);
 
@@ -24,9 +24,8 @@ public class XmlParser {
             String sql = "MERGE INTO exchange_rates (rate_date, currency, rate) KEY(rate_date, currency) VALUES (?, ?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                InputStream xmlInputStream = XmlParser.class.getClassLoader().getResourceAsStream("dtecbs-l.xml");
                 if (xmlInputStream == null) {
-                    System.err.println("FATAL ERROR: dtecbs-l.xml not found in src/main/resources folder.");
+                    System.err.println("FATAL ERROR: XML input stream is null. Cannot parse.");
                     return;
                 }
 
